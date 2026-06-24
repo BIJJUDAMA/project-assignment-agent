@@ -15,10 +15,6 @@ from hiring_agent.providers.ollama import OllamaProvider
 from hiring_agent.utils.llm import extract_json_from_response
 from hiring_agent.config import DEFAULT_MODEL, MODEL_PARAMETERS, DEVELOPMENT_MODE
 from hiring_agent.prompts.template_manager import TemplateManager
-from hiring_agent.utils.transform import (
-    convert_json_resume_to_text,
-    convert_github_data_to_text,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +27,77 @@ class MatchEvaluator:
         )
         self.template_manager = TemplateManager()
         self.provider = OllamaProvider()
+
+    def _convert_to_matching_text(self, resume_data: JSONResume, github_data: dict) -> str:
+        """
+        Serialize ONLY basics, work, skills, projects, and structured GitHub metadata.
+        This excludes Education, Volunteer (non-tech), Awards, Certificates, Publications, 
+        Languages, Interests, References, and Blog text.
+        """
+        text_parts = []
+
+        if resume_data.basics:
+            basics = resume_data.basics
+            text_parts.append("=== BASIC INFORMATION ===")
+            text_parts.append(f"Name: {basics.name or 'Not provided'}")
+            text_parts.append(f"Email: {basics.email or 'Not provided'}")
+            if basics.summary:
+                text_parts.append(f"Summary: {basics.summary}")
+
+        if resume_data.work:
+            text_parts.append("\n=== WORK EXPERIENCE ===")
+            for i, work in enumerate(resume_data.work, 1):
+                text_parts.append(f"{i}. {work.position} at {work.name}")
+                text_parts.append(f"   Period: {work.startDate} - {work.endDate}")
+                if work.summary:
+                    text_parts.append(f"   Description: {work.summary}")
+                if work.highlights:
+                    text_parts.append("   Key Achievements:")
+                    for highlight in work.highlights:
+                        text_parts.append(f"     • {highlight}")
+
+        if resume_data.skills:
+            text_parts.append("\n=== SKILLS ===")
+            for skill in resume_data.skills:
+                text_parts.append(f"• {skill.name}")
+                if skill.keywords:
+                    text_parts.append(f"  Keywords: {', '.join(skill.keywords)}")
+
+        if resume_data.projects:
+            text_parts.append("\n=== PROJECTS ===")
+            for i, project in enumerate(resume_data.projects, 1):
+                text_parts.append(f"{i}. {project.name}")
+                if project.description:
+                    text_parts.append(f"   Description: {project.description}")
+                if project.technologies:
+                    text_parts.append(f"   Technologies: {', '.join(project.technologies)}")
+                if project.highlights:
+                    text_parts.append("   Highlights:")
+                    for highlight in project.highlights:
+                        text_parts.append(f"     • {highlight}")
+
+        if github_data:
+            text_parts.append("\n=== GITHUB REPOSITORY METADATA ===")
+            if "profile" in github_data:
+                profile = github_data["profile"]
+                text_parts.append(f"GitHub Bio: {profile.get('bio', 'N/A')}")
+                text_parts.append(f"Public Repositories: {profile.get('public_repos', '0')}")
+                text_parts.append(f"Followers: {profile.get('followers', '0')}")
+            
+            if "projects" in github_data:
+                projects = github_data["projects"]
+                text_parts.append(f"GitHub Projects details:")
+                for i, project in enumerate(projects[:15], 1):  # Include more repos for richer skill discovery
+                    text_parts.append(f"{i}. {project.get('name', 'N/A')}")
+                    if project.get('description'):
+                        text_parts.append(f"   Description: {project.get('description')}")
+                    if "github_details" in project:
+                        details = project["github_details"]
+                        text_parts.append(f"   Stars: {details.get('stars', '0')} | Forks: {details.get('forks', '0')}")
+                        text_parts.append(f"   Primary Language: {details.get('language', 'N/A')}")
+                    text_parts.append("")
+
+        return "\n".join(text_parts)
 
     def _get_safe_filename(self, text: str) -> str:
         """Convert a string to a safe filename."""
@@ -70,11 +137,8 @@ class MatchEvaluator:
         # Parse & match
         logger.info(f"⚡ Evaluating match: {candidate_name} <-> {project.title}")
 
-        # Construct candidate representation
-        resume_text = convert_json_resume_to_text(resume_data)
-        if github_data:
-            github_text = convert_github_data_to_text(github_data)
-            resume_text += "\n" + github_text
+        # Construct stripped matching candidate representation
+        resume_text = self._convert_to_matching_text(resume_data, github_data)
 
         prompt = self.template_manager.render_template(
             "project_matching",

@@ -506,7 +506,46 @@ def main_assignment(resumes_path: str, projects_path: str):
                     )
 
         candidate_name = resume_data.basics.name if resume_data.basics and resume_data.basics.name else pdf_path.stem
-        candidates.append((resume_data, github_data, candidate_name))
+
+        # Fetch/Evaluate general resume score for seniority balancing (leverage #2)
+        eval_cache_filename = f"cache/evalcache_{pdf_path.stem}.json"
+        score_data = None
+        if DEVELOPMENT_MODE and os.path.exists(eval_cache_filename):
+            try:
+                cached_eval = json.loads(Path(eval_cache_filename).read_text(encoding="utf-8"))
+                score_data = EvaluationData(**cached_eval)
+            except Exception:
+                pass
+
+        if not score_data:
+            print(f"   Evaluating general resume quality for {candidate_name}...")
+            try:
+                score_data = _evaluate_resume(resume_data, github_data)
+                if score_data and DEVELOPMENT_MODE:
+                    os.makedirs("cache", exist_ok=True)
+                    Path(eval_cache_filename).write_text(
+                        json.dumps(score_data.model_dump(), indent=2, ensure_ascii=False),
+                        encoding="utf-8"
+                    )
+            except Exception as e:
+                logger.warning(f"Failed to evaluate general resume quality for {candidate_name}: {e}")
+
+        # Compute overall quality score out of 120
+        final_quality_score = 50.0
+        if score_data:
+            total_score = 0.0
+            if hasattr(score_data, "scores") and score_data.scores:
+                for category_name, category_data in score_data.scores.model_dump().items():
+                    category_score = min(category_data["score"], category_data["max"])
+                    total_score += category_score
+                if hasattr(score_data, "bonus_points") and score_data.bonus_points:
+                    total_score += score_data.bonus_points.total
+                if hasattr(score_data, "deductions") and score_data.deductions:
+                    total_score -= score_data.deductions.total
+            final_quality_score = max(-20.0, min(120.0, total_score))
+            print(f"   ✅ General Quality Score: {final_quality_score:.1f}/120.0")
+
+        candidates.append((resume_data, github_data, candidate_name, final_quality_score))
 
     if not candidates:
         print("❌ No candidates successfully parsed. Exiting.")
@@ -556,7 +595,7 @@ def main_assignment(resumes_path: str, projects_path: str):
     total_calls = len(candidates) * len(projects)
     call_index = 1
     
-    for resume_data, github_data, candidate_name in candidates:
+    for resume_data, github_data, candidate_name, _ in candidates:
         match_evals[candidate_name] = {}
         for project in projects:
             print(f"   [{call_index}/{total_calls}] Matching {candidate_name} with '{project.title}'...")
@@ -572,8 +611,8 @@ def main_assignment(resumes_path: str, projects_path: str):
     print("-" * 60)
     assignment_engine = AssignmentEngine()
     
-    # Strip candidates tuple to match expected input: List[Tuple[JSONResume, str]]
-    engine_candidates = [(res, name) for res, _, name in candidates]
+    # Strip candidates tuple to match expected input: List[Tuple[JSONResume, str, float]]
+    engine_candidates = [(res, name, score) for res, _, name, score in candidates]
     assignments = assignment_engine.assign_projects(engine_candidates, projects, match_evals)
 
     if not assignments:
@@ -596,7 +635,9 @@ def main_assignment(resumes_path: str, projects_path: str):
             print("   (No members assigned)")
             continue
         for idx, member in enumerate(team, 1):
-            print(f"  {idx}. {member['candidate_name']} (Fit Score: {member['fit_score']:.1f}/100)")
+            role_suffix = " (TEAM ANCHOR/LEAD) 👑" if member.get("is_anchor") else ""
+            print(f"  {idx}. {member['candidate_name']}{role_suffix}")
+            print(f"     Fit Score: {member['fit_score']:.1f}/100 | General Quality Score: {member.get('quality_score', 0.0):.1f}/120.0")
             print(f"     Reasoning: {member['reasoning']}")
             if member['strengths']:
                 print(f"     Strengths: {', '.join(member['strengths'])}")
@@ -607,7 +648,7 @@ def main_assignment(resumes_path: str, projects_path: str):
     # Save to CSV
     csv_path = "project_assignments.csv"
     with open(csv_path, "w", newline="", encoding="utf-8") as csvfile:
-        fieldnames = ["Candidate Name", "Assigned Project", "Fit Score", "Strengths", "Gaps", "Reasoning"]
+        fieldnames = ["Candidate Name", "Assigned Project", "Fit Score", "General Quality Score", "Is Anchor", "Strengths", "Gaps", "Reasoning"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         for assign in assignments:
@@ -615,6 +656,8 @@ def main_assignment(resumes_path: str, projects_path: str):
                 "Candidate Name": assign["candidate_name"],
                 "Assigned Project": assign["project_title"],
                 "Fit Score": f"{assign['fit_score']:.1f}",
+                "General Quality Score": f"{assign.get('quality_score', 0.0):.1f}",
+                "Is Anchor": "Yes" if assign.get("is_anchor") else "No",
                 "Strengths": "; ".join(assign["strengths"]),
                 "Gaps": "; ".join(assign["gaps"]),
                 "Reasoning": assign["reasoning"]

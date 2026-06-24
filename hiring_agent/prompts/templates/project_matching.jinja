@@ -15,14 +15,16 @@ Preferred Skills: {{ project_preferred_skills }}
 Project Description: {{ project_description }}
 
 ### Evaluation Instructions:
-1. Compare the candidate's skills, experience, and past projects with the project's requirements.
-2. Determine a compatibility score from 0 to 100 based on:
-   - Technology Alignment: Does the candidate know the required technologies? (e.g., Python, React, Go).
-   - Domain Alignment: Does the candidate have experience in the project's domain? (e.g. ML, DevOps, Frontend).
-   - Level of Expertise: Does the candidate's experience level match the project's complexity?
-3. Identify 2-4 key strengths (reasons why the candidate fits the project).
-4. Identify 2-4 key gaps (technologies or experience areas required by the project that the candidate lacks).
-5. Provide a clear reasoning sentence explaining the fit.
+1. Compare the candidate's technical skills, experience, and projects with the project's requirements.
+2. **Analyze GitHub Metadata**: Pay close attention to the candidate's public repositories, repository descriptions, star/fork counts, and primary languages. 
+   - Use these metadata points to discover hidden skills, gauge the complexity/real-world adoption of their work, and evaluate how effectively they can apply their skills to this project.
+3. Determine a compatibility score from 0 to 100 based on:
+   - Technology Alignment: Does the candidate demonstrate proficiency in the required technologies (e.g. via skills list, work history, or GitHub codebases)?
+   - Domain Alignment: Does the candidate have experience in the project's domain (e.g. Backend, ML, DevOps)?
+   - Execution Capability: Does their codebase/work history indicate they can deliver a project of this complexity?
+4. Identify 2-4 key strengths (reasons why the candidate fits the project, linking specific skills to their application in GitHub repos or work experience).
+5. Identify 2-4 key gaps (technologies or experience areas required by the project that the candidate lacks).
+6. Provide a clear reasoning sentence explaining the fit.
 
 Return ONLY a JSON object with this exact structure:
 {
