@@ -619,14 +619,22 @@ def main_assignment(resumes_path: str, projects_path: str):
         print("❌ Project assignment failed.")
         return
 
-    # 7. Print and Save Results
-    print("\n" + "=" * 80)
-    print("📋 FINAL BALANCED PROJECT ASSIGNMENTS")
-    print("=" * 80)
-    
+    # 7. Post-process assignments: group by project and designate the lead/anchor based on quality score (at the end)
     project_teams = {p.title: [] for p in projects}
     for assign in assignments:
         project_teams[assign["project_title"]].append(assign)
+        
+    for proj_title, team in project_teams.items():
+        if team:
+            # Sort team members by general quality score descending
+            team.sort(key=lambda m: m.get("quality_score", 0.0), reverse=True)
+            # The highest general score member within this assigned team is designated as anchor
+            team[0]["is_anchor"] = True
+
+    # 8. Print and Save Results
+    print("\n" + "=" * 80)
+    print("📋 FINAL BALANCED PROJECT ASSIGNMENTS")
+    print("=" * 80)
         
     for proj_title, team in project_teams.items():
         print(f"\n🚀 PROJECT: {proj_title} ({len(team)} members)")
@@ -651,7 +659,13 @@ def main_assignment(resumes_path: str, projects_path: str):
         fieldnames = ["Candidate Name", "Assigned Project", "Fit Score", "General Quality Score", "Is Anchor", "Strengths", "Gaps", "Reasoning"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
-        for assign in assignments:
+        
+        # Flatten team list again for CSV write
+        all_final_assignments = []
+        for team in project_teams.values():
+            all_final_assignments.extend(team)
+            
+        for assign in all_final_assignments:
             writer.writerow({
                 "Candidate Name": assign["candidate_name"],
                 "Assigned Project": assign["project_title"],

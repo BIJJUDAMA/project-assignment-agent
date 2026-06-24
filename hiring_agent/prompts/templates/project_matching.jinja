@@ -16,13 +16,11 @@ Project Description: {{ project_description }}
 
 ### Evaluation Instructions:
 1. Compare the candidate's technical skills, experience, and projects with the project's requirements.
-2. **Analyze GitHub Metadata**: Pay close attention to the candidate's public repositories, repository descriptions, star/fork counts, and primary languages. 
-   - Use these metadata points to discover hidden skills, gauge the complexity/real-world adoption of their work, and evaluate how effectively they can apply their skills to this project.
+2. **Analyze GitHub Metadata**: Pay close attention to the candidate's public repositories, repository descriptions, and primary languages to discover matching technical skills and domain alignments. Use this data purely to verify their practical experience with the required technology stack.
 3. Determine a compatibility score from 0 to 100 based on:
    - Technology Alignment: Does the candidate demonstrate proficiency in the required technologies (e.g. via skills list, work history, or GitHub codebases)?
    - Domain Alignment: Does the candidate have experience in the project's domain (e.g. Backend, ML, DevOps)?
-   - Execution Capability: Does their codebase/work history indicate they can deliver a project of this complexity?
-4. Identify 2-4 key strengths (reasons why the candidate fits the project, linking specific skills to their application in GitHub repos or work experience).
+4. Identify 2-4 key strengths (reasons why the candidate's skills fit the project).
 5. Identify 2-4 key gaps (technologies or experience areas required by the project that the candidate lacks).
 6. Provide a clear reasoning sentence explaining the fit.
 
@@ -33,7 +31,7 @@ Return ONLY a JSON object with this exact structure:
   "fit_score": 75.0,
   "strengths": ["Strength 1", "Strength 2"],
   "gaps": ["Gap 1", "Gap 2"],
-  "reasoning": "A concise summary of why the candidate fits this project."
+  "reasoning": "A concise summary of why the candidate's skills fit this project."
 }
 
 **IMPORTANT**: Return ONLY valid JSON matching the schema. Do not include markdown blocks or any other explanation.
