@@ -3,20 +3,19 @@ import sys
 import json
 import logging
 import csv
-from pdf import PDFHandler
-from github import fetch_and_display_github_info
-from models import JSONResume, EvaluationData
+from hiring_agent.pipeline.pdf_handler import PDFHandler
+from hiring_agent.pipeline.github import fetch_and_display_github_info
+from hiring_agent.schemas.resume import JSONResume, EvaluationData
 from typing import List, Optional, Dict
-from evaluator import ResumeEvaluator
+from hiring_agent.pipeline.evaluator import ResumeEvaluator
 from pathlib import Path
-from prompt import DEFAULT_MODEL, MODEL_PARAMETERS
-from transform import (
+from hiring_agent.config import DEFAULT_MODEL, MODEL_PARAMETERS, DEVELOPMENT_MODE
+from hiring_agent.utils.transform import (
     transform_evaluation_response,
     convert_json_resume_to_text,
     convert_github_data_to_text,
     convert_blog_data_to_text,
 )
-from config import DEVELOPMENT_MODE
 
 logger = logging.getLogger(__name__)
 
