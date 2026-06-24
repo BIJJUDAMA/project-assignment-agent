@@ -19,6 +19,7 @@
 ## Contents
 
 - [Overview](#overview)
+- [Documentation Reference](#documentation-reference)
 - [Architecture](#architecture)
 - [Installation and Setup](#installation-and-setup)
   - [Prerequisites](#prerequisites)
@@ -38,6 +39,14 @@
 ## Overview
 
 Project Assignment Agent parses resume and project specification PDFs to Markdown, structures them using a local LLM via Ollama, enriches resumes with GitHub signals, and scores candidate-to-project compatibility. Finally, it uses SciPy's Hungarian algorithm to assign candidates to projects under a strict equal distribution capacity constraint, maximizing overall suitability. The pipeline runs fully local — no cloud API required.
+
+---
+
+## Documentation Reference
+
+For in-depth explanations of scoring rules and optimization algorithms:
+* **[SCORING.md](file:///C:/My-Files/Github/hiring-agent/SCORING.md)** details the rubrics for both individual resume scoring and candidate-project compatibility scores.
+* **[MATCHER.md](file:///C:/My-Files/Github/hiring-agent/MATCHER.md)** explains the LLM pair-matching caching layer and the SciPy linear sum assignment formulation.
 
 ---
 

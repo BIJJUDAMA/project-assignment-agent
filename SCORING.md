@@ -1,6 +1,12 @@
-# Hiring Agent - Scoring Framework
+# Project Assignment Agent - Scoring Framework
 
-## Score Structure - Max 120 points
+This document outlines the scoring systems used by the **Project Assignment Agent** to evaluate resumes and calculate candidate-to-project compatibility.
+
+---
+
+## 1. Resume Scoring Framework (Max 120 points)
+
+The resume evaluation pipeline generates an objective, explainable score for a candidate's background.
 
 ```
 Base Categories (100 pts max)
@@ -12,144 +18,99 @@ Base Categories (100 pts max)
 ⭐ Bonus Points          → up to +20 pts
 ⚠️  Deductions           → variable negative
 
-Final = categories + bonus − deductions  (hard capped at 120)
+Final Score = categories + bonus − deductions (hard capped at 120)
+```
+
+### 🌐 Open Source (0–35 pts)
+* **25–35 pts**: Significant contributions to popular repos (1000+ stars), Google Summer of Code (GSoC).
+* **15–24 pts**: Smaller OSS projects, active public contributions.
+* **5–10 pts**: Only personal repos, Hacktoberfest alone.
+* **0–4 pts**: No GitHub presence, or only basic tutorial repos.
+* *Rule*: Personal repos do not count as open source. If GitHub data lists only `self_project` types, the score is capped at 10.
+
+### 🚀 Self Projects (0–30 pts)
+* **20–30 pts**: Complex, real-world impact, multi-technology stack, active user adoption.
+* **10–19 pts**: Moderate complexity, good documentation, multiple features.
+* **1–9 pts**: Simple tutorial apps (todo lists, calculators, basic CRUD, weather apps).
+* *Rule*: A deduction of −3 to −5 is applied for each project missing a live URL or repository link.
+
+### 🏢 Production Experience (0–25 pts)
+* Evaluates internships, jobs, and volunteer work from the `work` and `volunteer` sections.
+* Startup founders/co-founders or early-stage startup engineers receive extra consideration.
+
+### 💻 Technical Skills (0–10 pts)
+* Assesses the breadth and depth of languages/frameworks listed under `skills`, backed by evidence in work experience or projects.
+
+### ⭐ Bonus Points (Max +20 pts)
+* **+5**: Google Summer of Code (GSoC)
+* **+3**: Girl Script Summer of Code
+* **+3–5**: Startup Founder / Co-founder
+* **+2–3**: Early-stage Startup Engineer (first 10-20 employees)
+* **+2**: Portfolio URL present in basics
+* **+1**: LinkedIn profile present
+* **+1–3**: High-quality technical blog
+
+---
+
+## 2. Project Compatibility Scoring (0–100 pts)
+
+To assign candidates to project specs, the agent runs a pair-level compatibility matching assessment.
+
+```
+Project Fit Score (100 pts max)
+├── ⚙️ Technology Alignment  → Crucial technologies (languages/frameworks)
+├── 🌐 Domain Match          → Alignment with project domain (e.g. ML, DevOps)
+└── 📈 Complexity Fit        → Alignment of candidate experience with project scope
+```
+
+### Scoring Rubric:
+* **85–100 (Exceptional Fit)**: Candidate possesses strong hands-on experience in all required technologies and domain-specific concepts, with demonstrable project or production evidence.
+* **70–84 (Good Fit)**: Candidate matches the main technology stack and domain, with minor gaps that can be easily picked up.
+* **50–69 (Moderate Fit)**: Candidate has transferable skills (e.g. knows Java/C++ but project requires Go) but lacks direct experience in the domain or primary technologies.
+* **0–49 (Poor Fit)**: Major technology mismatch and domain misalignment (e.g., matching a pure frontend designer to a low-level C++ embedded systems project).
+
+---
+
+## 3. Pipeline Execution Flows
+
+### A. Resume Evaluation Flow
+```
+PDF → PDFHandler (PyMuPDF) → JSONResume
+                            └─► GitHub API Enrichment
+                                  └─► ResumeEvaluator (Ollama) → EvaluationData JSON
+                                        ├─► Print To Console
+                                        └─► Append to resume_evaluations.csv
+```
+
+### B. Project Matching & Assignment Flow
+```
+Resumes Dir (PDFs)  ──► PDFHandler ──► JSONResumes List ──┐
+Projects Dir (PDFs) ──► PDFHandler ──► ProjectSpecs List ─┼─► MatchEvaluator (Ollama)
+                                                          │     ├─► Check Pair Cache
+                                                          │     └─► ProjectFit JSON
+                                                          ▼
+                                                   Cost Matrix (N x N)
+                                                          │
+                                                          ▼
+                                                  AssignmentEngine
+                                            (SciPy linear_sum_assignment)
+                                                          │
+                                                          ▼
+                                                Stdout Team Reports &
+                                              project_assignments.csv
 ```
 
 ---
 
-## Open Source (0–35 pts)
+## 4. Key Orchestration Files
 
-| Range  | Criteria                                                        |
-| ------ | --------------------------------------------------------------- |
-| 25–35 | Contributions to 1000+ star repos, Google Summer of Code (GSoC) |
-| 15–24 | Smaller OSS projects, active contributions to other repos       |
-| 5–10  | Only personal repos, Hacktoberfest alone                        |
-| 0–4   | No GitHub presence, only tutorial repos                         |
-
-> **Key rule:** Personal GitHub repos do **not** count as open source. If GitHub data shows all projects as `self_project` type, score is forced ≤ 10.
-
----
-
-## Self Projects (0–30 pts)
-
-| Range  | Criteria                                                            |
-| ------ | ------------------------------------------------------------------- |
-| 20–30 | Complex, real-world impact, multi-tech stack, user adoption         |
-| 10–19 | Moderate complexity, good documentation, multiple features          |
-| 1–9   | Todo apps, calculators, basic CRUD, weather apps, note-taking apps  |
-| 0      | No projects or extremely basic with no technical skill demonstrated |
-
-> **No link penalty:** −3 to −5 per project without a GitHub link or live demo URL.
-
-### Complex vs. Simple Projects
-
-**Simple (low scores):** Todo lists, calculators, basic CRUD, weather apps, note-taking apps, recipe apps, basic sentiment analysis, simple e-commerce clones.
-
-**Complex (high scores):** Full-stack with auth + DB, ML/AI apps, real-time apps (chat/streaming), microservices architecture, mobile apps with native features, projects with significant user adoption.
-
----
-
-## Production (0–25 pts)
-
-- Internships, full-time jobs, volunteer/contract work
-- Analyzed from `work` and `volunteer` resume sections
-- **Extra consideration** for founder/co-founder roles or early-stage startup engineers (first 10–20 employees)
-
----
-
-## Technical Skills (0–10 pts)
-
-- Breadth of languages and frameworks from the `skills` section
-- Evidence drawn from project descriptions, work history, and competitions
-
----
-
-## Bonus Points (max 20 total)
-
-| Points | Trigger                                               |
-| ------ | ----------------------------------------------------- |
-| +5     | Google Summer of Code (GSoC) participation            |
-| +3     | Girl Script Summer of Code participation              |
-| +3–5  | Startup founder / co-founder experience               |
-| +2–3  | Early-stage startup engineer (first 10–20 employees) |
-| +2     | Portfolio website present in`basics.url`            |
-| +1     | LinkedIn profile present                              |
-| +1–3  | High-quality technical blog (if blog data provided)   |
-
-> **Hard cap:** Total bonus points cannot exceed 20 under any circumstances.
-
----
-
-## Deductions
-
-| Trigger                                                     | Deduction       |
-| ----------------------------------------------------------- | --------------- |
-| Resume contains only simple tutorial projects               | −2 to −5      |
-| Each additional simple project beyond the first             | −1 to −3      |
-| Generic project names (e.g. "Todo App", "Calculator")       | −1 each        |
-| Project with no link, GitHub, or live demo                  | −3 to −5 each |
-| Project with GitHub link but no live demo                   | −2 to −3 each |
-| Broken or inactive links                                    | −1 to −2 each |
-| All GitHub projects are`self_project` type (no real OSS)  | −3 to −5      |
-| Hacktoberfest without contributions to significant projects | −3 to −5      |
-
----
-
-## Fairness Rules
-
-The LLM is **explicitly instructed to ignore** the following when scoring:
-
-- Candidate name, gender, or personal demographics
-- College / university name
-- CGPA / GPA / academic grades
-- City, location, or geographical information
-
-**Evaluation is based only on:**
-
-- Technical skills and programming languages
-- Project complexity and real-world impact
-- Open source contributions and community involvement
-- Work experience and production-level contributions
-- Technical communication and documentation
-
----
-
-## Program Distinction (enforced in prompt)
-
-- **"Google Summer of Code (GSoC)"** and **"Girl Script Summer of Code"** are completely different programs.
-- The prompt explicitly forbids using "GSoC" as shorthand for Girl Script Summer of Code.
-
----
-
-## Pipeline Flow
-
-```
-PDF
- └─► PyMuPDF (text extraction via pymupdf_rag.to_markdown)
-      └─► LLM - 6 separate calls, one per section:
-           basics, work, education, skills, projects, awards
-      └─► GitHub API - fetched from profile URL found in resume
-      └─► Blog data (optional)
-           └─► All merged into a single resume_text string
-                └─► LLM - 1 evaluation call → EvaluationData JSON
-                     └─► Printed to console
-                     └─► Appended to resume_evaluations.csv (dev mode)
-```
-
-> **Note:** The 6-section PDF parsing is why the script hits Gemini free-tier rate limits quickly (6+ LLM calls per resume).
-
----
-
-## Key Files
-
-| File                                                         | Role                                                     |
-| ------------------------------------------------------------ | -------------------------------------------------------- |
-| `score.py`                                                 | Entry point, orchestrates the full pipeline              |
-| `pdf.py`                                                   | PDF text extraction + per-section LLM calls              |
-| `evaluator.py`                                             | Single LLM call to score the resume                      |
-| `github.py`                                                | Fetches GitHub profile and repo data                     |
-| `models.py`                                                | Pydantic models +`OllamaProvider` / `GeminiProvider` |
-| `llm_utils.py`                                             | Provider routing based on model name                     |
-| `prompt.py`                                                | Model name → provider mapping, API key loading          |
-| `prompts/templates/resume_evaluation_criteria.jinja`       | Full scoring rubric sent to LLM                          |
-| `prompts/templates/resume_evaluation_system_message.jinja` | System prompt for the evaluator                          |
+| File | Role |
+| --- | --- |
+| [main.py](file:///C:/My-Files/Github/hiring-agent/main.py) | Entry point (CLI argument router). |
+| [hiring_agent/main.py](file:///C:/My-Files/Github/hiring-agent/hiring_agent/main.py) | Orchestration pipeline, handles folder batch runs and project assignment flows. |
+| [hiring_agent/schemas/resume.py](file:///C:/My-Files/Github/hiring-agent/hiring_agent/schemas/resume.py) | Pydantic data schemas representing resume, project, and matching objects. |
+| [hiring_agent/pipeline/pdf_handler.py](file:///C:/My-Files/Github/hiring-agent/hiring_agent/pipeline/pdf_handler.py) | Converts PDFs to Markdown, structures sections. |
+| [hiring_agent/pipeline/evaluator.py](file:///C:/My-Files/Github/hiring-agent/hiring_agent/pipeline/evaluator.py) | Resume scoring LLM coordinator. |
+| [hiring_agent/pipeline/match_evaluator.py](file:///C:/My-Files/Github/hiring-agent/hiring_agent/pipeline/match_evaluator.py) | Pair compatibility evaluator with cache layer. |
+| [hiring_agent/pipeline/assignment_engine.py](file:///C:/My-Files/Github/hiring-agent/hiring_agent/pipeline/assignment_engine.py) | Balanced optimization engine using SciPy. |
+| [hiring_agent/prompts/templates/](file:///C:/My-Files/Github/hiring-agent/hiring_agent/prompts/templates/) | Jinja prompt templates for parsing and matching. |
