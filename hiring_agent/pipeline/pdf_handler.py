@@ -24,6 +24,7 @@ from hiring_agent.schemas.resume import (
     SkillsSection,
     ProjectsSection,
     AwardsSection,
+    ProjectRequirements,
 )
 from hiring_agent.providers.ollama import OllamaProvider
 from hiring_agent.utils.llm import extract_json_from_response
@@ -322,3 +323,52 @@ class PDFHandler:
         except Exception as e:
             logger.error(f"❌ Error creating JSONResume object: {e}")
             return None
+
+    def extract_project_from_pdf(self, pdf_path: str) -> Optional[ProjectRequirements]:
+        """Extract project specifications from a PDF spec."""
+        logger.info(f"📄 Extracting project specs from PDF: {pdf_path}")
+        text_content = self.extract_text_from_pdf(pdf_path)
+        if not text_content:
+            logger.error(f"❌ Could not extract text from project PDF: {pdf_path}")
+            return None
+
+        prompt = self.template_manager.render_template(
+            "project_parsing", text_content=text_content
+        )
+        if not prompt:
+            logger.error("❌ Failed to render project_parsing template")
+            return None
+
+        try:
+            model_params = MODEL_PARAMETERS.get(DEFAULT_MODEL, {"temperature": 0.1, "top_p": 0.9})
+            section_system_message = self.template_manager.render_template(
+                "system_message", section_name_param="project spec"
+            )
+            chat_params = {
+                "model": DEFAULT_MODEL,
+                "messages": [
+                    {"role": "system", "content": section_system_message or "You are a helpful assistant."},
+                    {"role": "user", "content": prompt},
+                ],
+                "options": {
+                    "stream": False,
+                    "temperature": model_params["temperature"],
+                    "top_p": model_params["top_p"],
+                },
+            }
+            response = self.provider.chat(**chat_params, format=ProjectRequirements.model_json_schema())
+            response_text = response["message"]["content"]
+            response_text = extract_json_from_response(response_text)
+            
+            # Simple clean up of JSON bounds
+            json_start = response_text.find("{")
+            json_end = response_text.rfind("}")
+            if json_start != -1 and json_end != -1:
+                response_text = response_text[json_start : json_end + 1]
+                
+            parsed_data = json.loads(response_text)
+            return ProjectRequirements(**parsed_data)
+        except Exception as e:
+            logger.error(f"❌ Error parsing project PDF: {e}")
+            return None
+

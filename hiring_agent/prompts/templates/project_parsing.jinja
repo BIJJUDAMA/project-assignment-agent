@@ -1,0 +1,18 @@
+Extract the project requirements and details from this project description document.
+
+--- The input markdown starts here ---
+
+{{ text_content }}
+
+--- The input markdown ends here ---
+
+Return ONLY a JSON object with this structure matching the schema:
+{
+  "title": "Title of the project",
+  "description": "A concise summary of the project goals and description",
+  "required_technologies": ["List of core programming languages, frameworks, or libraries"],
+  "preferred_skills": ["List of other useful skills, experience domains, or nice-to-have capabilities"],
+  "domain": "One of: Frontend, Backend, ML, Fullstack, DevOps, Data, Mobile, Embedded, or Security"
+}
+
+**IMPORTANT**: Return ONLY valid JSON matching the schema. Do not include markdown blocks or any other explanation.

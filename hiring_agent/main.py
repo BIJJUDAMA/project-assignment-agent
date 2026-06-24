@@ -17,8 +17,10 @@ from typing import Optional
 
 from hiring_agent.pipeline.pdf_handler import PDFHandler
 from hiring_agent.pipeline.github import fetch_and_display_github_info
-from hiring_agent.schemas.resume import JSONResume, EvaluationData
+from hiring_agent.schemas.resume import JSONResume, EvaluationData, ProjectRequirements, ProjectFit
 from hiring_agent.pipeline.evaluator import ResumeEvaluator
+from hiring_agent.pipeline.match_evaluator import MatchEvaluator
+from hiring_agent.pipeline.assignment_engine import AssignmentEngine
 from hiring_agent.config import DEFAULT_MODEL, MODEL_PARAMETERS, DEVELOPMENT_MODE
 from hiring_agent.utils.transform import (
     transform_evaluation_response,
@@ -406,14 +408,240 @@ def main_batch(folder_path: str):
     return results
 
 
+def main_assignment(resumes_path: str, projects_path: str):
+    """Orchestrate parsing, matching, and balanced project assignment."""
+    logger.info("🚀 Starting Candidate-Project Assignment Pipeline")
+
+    # 1. Resolve Resume PDFs
+    resumes_dir = Path(resumes_path)
+    if resumes_dir.is_file():
+        resume_files = [resumes_dir]
+    elif resumes_dir.is_dir():
+        resume_files = sorted(
+            p for p in resumes_dir.iterdir()
+            if p.suffix.lower() == ".pdf" and p.is_file()
+        )
+    else:
+        print(f"❌ Resumes path not found: {resumes_path}")
+        return
+
+    if not resume_files:
+        print(f"❌ No resume PDF files found in: {resumes_path}")
+        return
+
+    # 2. Resolve Project PDFs
+    projects_dir = Path(projects_path)
+    if projects_dir.is_file():
+        project_files = [projects_dir]
+    elif projects_dir.is_dir():
+        project_files = sorted(
+            p for p in projects_dir.iterdir()
+            if p.suffix.lower() == ".pdf" and p.is_file()
+        )
+    else:
+        print(f"❌ Projects path not found: {projects_path}")
+        return
+
+    if not project_files:
+        print(f"❌ No project PDF files found in: {projects_path}")
+        return
+
+    print("=" * 80)
+    print(f"📂 Found {len(resume_files)} Resume(s) and {len(project_files)} Project(s)")
+    print("=" * 80)
+
+    # 3. Parse Resumes & Fetch Github
+    pdf_handler = PDFHandler()
+    candidates = []
+    
+    print("\n📝 Step 1: Parsing Candidate Resumes...")
+    print("-" * 60)
+    for i, pdf_path in enumerate(resume_files, 1):
+        print(f"[{i}/{len(resume_files)}] Parsing candidate: {pdf_path.name}")
+        # Re-use parsing cache logic from main
+        cache_filename = f"cache/resumecache_{pdf_path.stem}.json"
+        github_cache_filename = f"cache/githubcache_{pdf_path.stem}.json"
+        
+        resume_data = None
+        if DEVELOPMENT_MODE and os.path.exists(cache_filename):
+            try:
+                cached_data = json.loads(Path(cache_filename).read_text(encoding="utf-8"))
+                resume_data = JSONResume(**cached_data)
+            except Exception:
+                pass
+                
+        if not resume_data:
+            resume_data = pdf_handler.extract_json_from_pdf(str(pdf_path))
+            if resume_data and DEVELOPMENT_MODE:
+                os.makedirs("cache", exist_ok=True)
+                Path(cache_filename).write_text(
+                    json.dumps(resume_data.model_dump(), indent=2, ensure_ascii=False),
+                    encoding="utf-8"
+                )
+                
+        if not resume_data:
+            logger.warning(f"Failed to parse resume: {pdf_path.name}")
+            continue
+
+        # Fetch Github
+        github_data = {}
+        github_cache_loaded = False
+        if DEVELOPMENT_MODE and os.path.exists(github_cache_filename):
+            try:
+                github_data = json.loads(Path(github_cache_filename).read_text(encoding="utf-8"))
+                github_cache_loaded = True
+            except Exception:
+                pass
+                
+        if not github_cache_loaded:
+            profiles = resume_data.basics.profiles or [] if resume_data.basics else []
+            github_profile = find_profile(profiles, "Github")
+            if github_profile:
+                github_data = fetch_and_display_github_info(github_profile.url)
+                if DEVELOPMENT_MODE and github_data:
+                    os.makedirs("cache", exist_ok=True)
+                    Path(github_cache_filename).write_text(
+                        json.dumps(github_data, indent=2, ensure_ascii=False),
+                        encoding="utf-8"
+                    )
+
+        candidate_name = resume_data.basics.name if resume_data.basics and resume_data.basics.name else pdf_path.stem
+        candidates.append((resume_data, github_data, candidate_name))
+
+    if not candidates:
+        print("❌ No candidates successfully parsed. Exiting.")
+        return
+
+    # 4. Parse Projects
+    projects = []
+    print("\n📝 Step 2: Parsing Project Specs...")
+    print("-" * 60)
+    for i, pdf_path in enumerate(project_files, 1):
+        print(f"[{i}/{len(project_files)}] Parsing project: {pdf_path.name}")
+        project_cache_filename = f"cache/projectcache_{pdf_path.stem}.json"
+        
+        project_data = None
+        if DEVELOPMENT_MODE and os.path.exists(project_cache_filename):
+            try:
+                cached_data = json.loads(Path(project_cache_filename).read_text(encoding="utf-8"))
+                project_data = ProjectRequirements(**cached_data)
+            except Exception:
+                pass
+                
+        if not project_data:
+            project_data = pdf_handler.extract_project_from_pdf(str(pdf_path))
+            if project_data and DEVELOPMENT_MODE:
+                os.makedirs("cache", exist_ok=True)
+                Path(project_cache_filename).write_text(
+                    json.dumps(project_data.model_dump(), indent=2, ensure_ascii=False),
+                    encoding="utf-8"
+                )
+                
+        if not project_data:
+            logger.warning(f"Failed to parse project spec: {pdf_path.name}")
+            continue
+            
+        projects.append(project_data)
+
+    if not projects:
+        print("❌ No projects successfully parsed. Exiting.")
+        return
+
+    # 5. Evaluate Matches (Sequential Option A)
+    print("\n⚖️  Step 3: Evaluating Candidate-Project Matches (Option A: Evaluate All)...")
+    print("-" * 60)
+    match_evaluator = MatchEvaluator()
+    match_evals = {}
+    
+    total_calls = len(candidates) * len(projects)
+    call_index = 1
+    
+    for resume_data, github_data, candidate_name in candidates:
+        match_evals[candidate_name] = {}
+        for project in projects:
+            print(f"   [{call_index}/{total_calls}] Matching {candidate_name} with '{project.title}'...")
+            fit = match_evaluator.evaluate_match(
+                resume_data, github_data, project, candidate_name
+            )
+            if fit:
+                match_evals[candidate_name][project.title] = fit
+            call_index += 1
+
+    # 6. Assign Projects using SciPy
+    print("\n🎯 Step 4: Solving Balanced Project Assignment...")
+    print("-" * 60)
+    assignment_engine = AssignmentEngine()
+    
+    # Strip candidates tuple to match expected input: List[Tuple[JSONResume, str]]
+    engine_candidates = [(res, name) for res, _, name in candidates]
+    assignments = assignment_engine.assign_projects(engine_candidates, projects, match_evals)
+
+    if not assignments:
+        print("❌ Project assignment failed.")
+        return
+
+    # 7. Print and Save Results
+    print("\n" + "=" * 80)
+    print("📋 FINAL BALANCED PROJECT ASSIGNMENTS")
+    print("=" * 80)
+    
+    project_teams = {p.title: [] for p in projects}
+    for assign in assignments:
+        project_teams[assign["project_title"]].append(assign)
+        
+    for proj_title, team in project_teams.items():
+        print(f"\n🚀 PROJECT: {proj_title} ({len(team)} members)")
+        print("-" * 60)
+        if not team:
+            print("   (No members assigned)")
+            continue
+        for idx, member in enumerate(team, 1):
+            print(f"  {idx}. {member['candidate_name']} (Fit Score: {member['fit_score']:.1f}/100)")
+            print(f"     Reasoning: {member['reasoning']}")
+            if member['strengths']:
+                print(f"     Strengths: {', '.join(member['strengths'])}")
+            if member['gaps']:
+                print(f"     Gaps: {', '.join(member['gaps'])}")
+            print()
+
+    # Save to CSV
+    csv_path = "project_assignments.csv"
+    with open(csv_path, "w", newline="", encoding="utf-8") as csvfile:
+        fieldnames = ["Candidate Name", "Assigned Project", "Fit Score", "Strengths", "Gaps", "Reasoning"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for assign in assignments:
+            writer.writerow({
+                "Candidate Name": assign["candidate_name"],
+                "Assigned Project": assign["project_title"],
+                "Fit Score": f"{assign['fit_score']:.1f}",
+                "Strengths": "; ".join(assign["strengths"]),
+                "Gaps": "; ".join(assign["gaps"]),
+                "Reasoning": assign["reasoning"]
+            })
+            
+    print("=" * 80)
+    print(f"📄 Results written to {csv_path}")
+    print("=" * 80)
+    return assignments
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python -m hiring_agent <pdf_path>")
-        exit(1)
-    pdf_path = sys.argv[1]
+    import argparse
+    parser = argparse.ArgumentParser(description="Hiring Agent CLI")
+    parser.add_argument("--resumes", help="Path to resumes PDF or folder containing resume PDFs")
+    parser.add_argument("--projects", help="Path to projects PDF or folder containing project PDFs")
+    parser.add_argument("legacy_path", nargs="?", help="Legacy path (single resume PDF or folder of resumes)")
+    args = parser.parse_args()
 
-    if not os.path.exists(pdf_path):
-        print(f"Error: File '{pdf_path}' does not exist.")
-        exit(1)
+    if args.resumes and args.projects:
+        main_assignment(args.resumes, args.projects)
+    elif args.legacy_path:
+        if os.path.isdir(args.legacy_path):
+            main_batch(args.legacy_path)
+        else:
+            main(args.legacy_path)
+    else:
+        parser.print_help()
+        sys.exit(1)
 
-    main(pdf_path)

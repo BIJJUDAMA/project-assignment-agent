@@ -1,6 +1,6 @@
-# Hiring Agent
+# Project Assignment Agent
 
-<p align="center"><strong>Resume-to-Score pipeline</strong> that extracts structured data from PDFs, enriches with GitHub signals, and outputs a fair, explainable evaluation.</p>
+<p align="center"><strong>Resume-to-Project assignment pipeline</strong> that extracts structured data from resume and project spec PDFs, enriches profiles with GitHub signals, scores candidate-project compatibility, and distributes candidates equally to projects using a globally optimal solver.</p>
 
 <p align="center">
   <a href="https://www.python.org/downloads/release/python-3110/">
@@ -27,6 +27,8 @@
 - [Configuration](#configuration)
 - [How it works](#how-it-works)
 - [CLI usage](#cli-usage)
+  - [Legacy Resume Scoring](#legacy-resume-scoring)
+  - [Balanced Candidate-Project Assignment](#balanced-candidate-project-assignment)
 - [Directory layout](#directory-layout)
 - [Contributing](#contributing)
 - [License](#license)
@@ -35,7 +37,7 @@
 
 ## Overview
 
-Hiring Agent parses a resume PDF to Markdown, extracts sectioned JSON using a local LLM via Ollama, augments the data with GitHub profile and repository signals, then produces an objective evaluation with category scores, evidence, bonus points, and deductions. The pipeline runs fully local — no cloud API required.
+Project Assignment Agent parses resume and project specification PDFs to Markdown, structures them using a local LLM via Ollama, enriches resumes with GitHub signals, and scores candidate-to-project compatibility. Finally, it uses SciPy's Hungarian algorithm to assign candidates to projects under a strict equal distribution capacity constraint, maximizing overall suitability. The pipeline runs fully local — no cloud API required.
 
 ---
 
@@ -47,11 +49,12 @@ Hiring Agent parses a resume PDF to Markdown, extracts sectioned JSON using a lo
 
 **Flow**
 
-1. `hiring_agent/utils/pymupdf_rag.py` converts PDF pages to Markdown-like text.
-2. `hiring_agent/pipeline/pdf_handler.py` calls the LLM per section using Jinja templates.
-3. `hiring_agent/pipeline/github.py` fetches profile and repos, classifies projects, and asks the LLM to select the top 7.
-4. `hiring_agent/pipeline/evaluator.py` runs a strict-scored evaluation with fairness constraints.
-5. `hiring_agent/main.py` orchestrates everything end to end and always writes a CSV row.
+1. `hiring_agent/utils/pymupdf_rag.py` converts resume and project PDF pages to Markdown.
+2. `hiring_agent/pipeline/pdf_handler.py` parses resumes and project specifications into structured JSON using local LLM calls and Jinja templates.
+3. `hiring_agent/pipeline/github.py` enriches resumes with GitHub profiles.
+4. `hiring_agent/pipeline/match_evaluator.py` evaluates candidate compatibility for each project.
+5. `hiring_agent/pipeline/assignment_engine.py` constructs a cost matrix and runs SciPy's Hungarian algorithm to assign candidates to project slots equally.
+6. `hiring_agent/main.py` orchestrates the assignment flow and outputs reports and CSVs.
 
 </td>
 <td>
@@ -59,22 +62,22 @@ Hiring Agent parses a resume PDF to Markdown, extracts sectioned JSON using a lo
 **Key modules**
 
 - `hiring_agent/schemas/resume.py`
-  Pydantic schemas for all resume and evaluation data.
+  Pydantic schemas for resumes, projects, and matching evaluations.
+
+- `hiring_agent/pipeline/match_evaluator.py`
+  Pair-level matching and caching system.
+
+- `hiring_agent/pipeline/assignment_engine.py`
+  Balanced distribution solver using `scipy.optimize.linear_sum_assignment`.
 
 - `hiring_agent/providers/ollama.py`
   Ollama provider wrapper.
 
-- `hiring_agent/utils/llm.py`
-  Response cleanup (think-block stripping, JSON fence removal).
-
-- `hiring_agent/utils/transform.py`
-  Normalization from loose LLM JSON to JSON Resume style.
-
 - `hiring_agent/prompts/`
-  All Jinja templates for extraction and scoring.
+  Jinja templates for extraction, scoring, and matching.
 
 - `hiring_agent/config.py`
-  Single source of truth for model selection and parameters.
+  Single source of truth for model configurations.
 
 </td>
 </tr>
@@ -87,11 +90,9 @@ Hiring Agent parses a resume PDF to Markdown, extracts sectioned JSON using a lo
 ### Prerequisites
 
 - **Python 3.11+**
-
   The repository pins `.python-version` to 3.11.13.
 
 - **Ollama**
-
   Install from the [official site](https://ollama.com/), then run `ollama serve`.
 
 ### Quick setup with pip
@@ -117,16 +118,6 @@ Pull the model you want to use. For example:
 $ ollama pull gemma3:4b
 ```
 
-If you want different results, you can pull other models such as:
-
-```bash
-# For higher system configuration
-$ ollama pull gemma3:12b
-
-# For lower system configuration
-$ ollama pull gemma3:1b
-```
-
 ---
 
 ## Configuration
@@ -144,51 +135,32 @@ $ cp .env.example .env
 | `DEFAULT_MODEL` | `gemma3:4b`  | Ollama model name passed to the provider.                              |
 | `GITHUB_TOKEN`  | *(optional)* | Increases GitHub API rate limit from 60/hr to 5000/hr.                |
 
-Model inference parameters (temperature, top_p) are configured per-model in `hiring_agent/config.py`.
-
 ---
 
 ## How it works
 
 <details>
-<summary><b>1) PDF extraction</b></summary>
+<summary><b>1) PDF extraction & parsing</b></summary>
 
-- `hiring_agent/utils/pymupdf_rag.py` and `hiring_agent/pipeline/pdf_handler.py` read the PDF using PyMuPDF and convert pages to Markdown-like text.
-- The `to_markdown` routine handles headings, links, tables, and basic formatting.
-
-</details>
-
-<details>
-<summary><b>2) Section parsing with templates</b></summary>
-
-- `hiring_agent/prompts/templates/*.jinja` define strict instructions for each section:
-  Basics, Work, Education, Skills, Projects, Awards.
-- `PDFHandler` calls the LLM per section and assembles a `JSONResume` object.
+- Resumes and project descriptions are converted to Markdown via PyMuPDF.
+- `PDFHandler` calls Ollama with custom templates to produce structured schemas (`JSONResume` and `ProjectRequirements`).
 
 </details>
 
 <details>
-<summary><b>3) GitHub enrichment</b></summary>
+<summary><b>2) Compatibility Matching</b></summary>
 
-- `hiring_agent/pipeline/github.py` extracts a username from the resume profiles, fetches profile and repos, and classifies each project.
-- It asks the LLM to select exactly 7 unique projects with a minimum author commit threshold, favoring meaningful contributions.
-
-</details>
-
-<details>
-<summary><b>4) Evaluation</b></summary>
-
-- `hiring_agent/pipeline/evaluator.py` uses templates that encode fairness and scoring rules.
-- Scores include `open_source`, `self_projects`, `production`, and `technical_skills`, plus bonus and deductions, with evidence for each category.
+- `MatchEvaluator` generates fit evaluations between every candidate and project.
+- To prevent redundant LLM calls, evaluation results are aggressively cached on a per-pair basis under `cache/matchcache_<candidate>_<project>.json`.
 
 </details>
 
 <details>
-<summary><b>5) Output and CSV export</b></summary>
+<summary><b>3) Globally Optimal Assignment</b></summary>
 
-- `hiring_agent/main.py` prints a readable summary to stdout.
-- A row is always appended to `resume_evaluations.csv` after every run.
-- Intermediate JSON is cached under `cache/` when `DEVELOPMENT_MODE=True` in `hiring_agent/config.py`.
+- `AssignmentEngine` maps projects to available slots (e.g. for $N$ candidates and $P$ projects, capacity per project is either $\lfloor N/P \rfloor$ or $\lceil N/P \rceil$).
+- It builds an $N \times N$ cost matrix where cost represents `100 - fit_score`.
+- It executes SciPy's Hungarian algorithm (`linear_sum_assignment`) to find the assignment that minimizes total cost, guaranteeing balanced team sizing while maximizing alignment quality.
 
 </details>
 
@@ -196,24 +168,28 @@ Model inference parameters (temperature, top_p) are configured per-model in `hir
 
 ## CLI usage
 
-### Score a single resume
+### Balanced Candidate-Project Assignment
+
+Runs the parsing, pair compatibility matching, and balanced distribution algorithm.
 
 ```bash
-$ python main.py /path/to/resume.pdf
+python main.py --resumes /path/to/resumes/ --projects /path/to/projects/
 ```
 
-### Score all resumes in a folder
+* Results will be printed to stdout and saved in `project_assignments.csv`.
+* Individual match JSON results are cached under `cache/` to accelerate subsequent runs.
 
+### Legacy Resume Scoring
+
+#### Score a single resume
 ```bash
-$ python main.py /path/to/resumes/
+python main.py /path/to/resume.pdf
 ```
 
-What happens:
-
-1. If development mode is on, the PDF extraction result is cached to `cache/resumecache_<basename>.json`.
-2. If a GitHub profile is found in the resume, repositories are fetched and cached to `cache/githubcache_<basename>.json`.
-3. The evaluator prints a report and appends a CSV row to `resume_evaluations.csv`.
-4. For folder runs, a summary shows how many resumes were processed successfully.
+#### Score all resumes in a folder
+```bash
+python main.py /path/to/resumes/
+```
 
 ---
 
@@ -221,7 +197,7 @@ What happens:
 
 ```text
 .
-├── main.py                          ← entry point (single file or folder)
+├── main.py                          ← entry point (supports assignment & legacy flags)
 ├── .env.example
 ├── .python-version
 ├── requirements.txt
@@ -229,7 +205,7 @@ What happens:
     ├── config.py                    ← model selection and parameters
     ├── main.py                      ← orchestration pipeline
     ├── schemas/
-    │   └── resume.py                ← Pydantic schemas
+    │   └── resume.py                ← Pydantic schemas (added project specs)
     ├── providers/
     │   └── ollama.py                ← Ollama provider
     ├── utils/
@@ -237,11 +213,13 @@ What happens:
     │   ├── transform.py             ← JSON Resume normalization
     │   └── pymupdf_rag.py           ← PDF-to-Markdown vendor utility
     ├── pipeline/
-    │   ├── pdf_handler.py           ← PDF extraction pipeline
-    │   ├── evaluator.py             ← scoring pipeline
-    │   └── github.py                ← GitHub enrichment pipeline
+    │   ├── pdf_handler.py           ← PDF extraction pipeline (added project extraction)
+    │   ├── evaluator.py             ← legacy scoring pipeline
+    │   ├── github.py                ← GitHub enrichment pipeline
+    │   ├── match_evaluator.py       ← project compatibility matching
+    │   └── assignment_engine.py     ← SciPy-based balanced assignment engine
     └── prompts/
-        ├── template_manager.py      ← Jinja2 template loader
+        ├── template_manager.py      ← Jinja2 template loader (added project prompts)
         └── templates/
             ├── awards.jinja
             ├── basics.jinja
@@ -252,18 +230,16 @@ What happens:
             ├── resume_evaluation_system_message.jinja
             ├── skills.jinja
             ├── system_message.jinja
-            └── work.jinja
+            ├── work.jinja
+            ├── project_parsing.jinja
+            └── project_matching.jinja
 ```
 
 ---
 
 ## Contributing
 
-Please read the [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines on filing issues, proposing changes, and submitting pull requests. Key principles include:
-
-- Keep prompts declarative and provider-agnostic.
-- Validate changes with a couple of real resumes.
-- Add or adjust unit-free smoke tests that call each stage with minimal inputs.
+Please read the [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 
 ---
 

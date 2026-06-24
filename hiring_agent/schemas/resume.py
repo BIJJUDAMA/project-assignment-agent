@@ -247,3 +247,25 @@ class GitHubProfile(BaseModel):
     blog: Optional[str] = None
     twitter_username: Optional[str] = None
     hireable: Optional[bool] = None
+
+
+class ProjectRequirements(BaseModel):
+    """Pydantic model for structured project specifications."""
+
+    title: str = Field(description="Title of the project")
+    description: str = Field(description="Detailed overview of the project")
+    required_technologies: List[str] = Field(description="Critical languages, frameworks, or tools")
+    preferred_skills: List[str] = Field(description="Helpful experience or domains")
+    domain: str = Field(description="Core domain, e.g. Frontend, Backend, ML, Fullstack, DevOps")
+
+
+class ProjectFit(BaseModel):
+    """LLM evaluation of a candidate's fit for a single project."""
+
+    candidate_name: str = Field(description="Name of the candidate")
+    project_title: str = Field(description="Title of the project")
+    fit_score: float = Field(ge=0, le=100, description="Match score from 0 (poor fit) to 100 (perfect fit)")
+    strengths: List[str] = Field(description="Key alignments between candidate profile and project requirements")
+    gaps: List[str] = Field(description="Skills/technologies required by the project that the candidate lacks")
+    reasoning: str = Field(description="Explanation of the fit score")
+
