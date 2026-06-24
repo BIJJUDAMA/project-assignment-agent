@@ -347,30 +347,63 @@ def main(pdf_path):
     # Print evaluation results in readable format
     print_evaluation_results(score, candidate_name)
 
-    if DEVELOPMENT_MODE:
-        csv_row = transform_evaluation_response(
-            file_name=os.path.basename(pdf_path),
-            evaluation=score,
-            resume_data=resume_data,
-            github_data=github_data,
-        )
+    # Always write CSV output
+    csv_row = transform_evaluation_response(
+        file_name=os.path.basename(pdf_path),
+        evaluation=score,
+        resume_data=resume_data,
+        github_data=github_data,
+    )
 
-        # Write CSV row to file
-        csv_path = "resume_evaluations.csv"
-        file_exists = os.path.exists(csv_path)
+    csv_path = "resume_evaluations.csv"
+    file_exists = os.path.exists(csv_path)
 
-        with open(csv_path, "a", newline="", encoding="utf-8") as csvfile:
-            fieldnames = list(csv_row.keys())
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    with open(csv_path, "a", newline="", encoding="utf-8") as csvfile:
+        fieldnames = list(csv_row.keys())
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-            # Write headers if file doesn't exist
-            if not file_exists:
-                writer.writeheader()
+        if not file_exists:
+            writer.writeheader()
 
-            # Write the row
-            writer.writerow(csv_row)
+        writer.writerow(csv_row)
+
+    print(f"📄 Results appended to {csv_path}")
 
     return score
+
+
+def main_batch(folder_path: str):
+    """Process all PDF files found in a folder."""
+    pdf_files = sorted(
+        p for p in Path(folder_path).iterdir()
+        if p.suffix.lower() == ".pdf" and p.is_file()
+    )
+
+    if not pdf_files:
+        print(f"❌ No PDF files found in: {folder_path}")
+        return
+
+    print(f"📂 Found {len(pdf_files)} PDF(s) in {folder_path}")
+    print("=" * 80)
+
+    results = []
+    for i, pdf_path in enumerate(pdf_files, 1):
+        print(f"\n[{i}/{len(pdf_files)}] Processing: {pdf_path.name}")
+        print("-" * 60)
+        try:
+            result = main(str(pdf_path))
+            results.append({"file": pdf_path.name, "result": result})
+        except Exception as e:
+            logger.error(f"❌ Failed to process {pdf_path.name}: {e}")
+            results.append({"file": pdf_path.name, "result": None})
+
+    # Summary
+    succeeded = sum(1 for r in results if r["result"] is not None)
+    print("\n" + "=" * 80)
+    print(f"✅ Batch complete: {succeeded}/{len(pdf_files)} processed successfully")
+    print(f"📄 All results written to resume_evaluations.csv")
+
+    return results
 
 
 if __name__ == "__main__":
