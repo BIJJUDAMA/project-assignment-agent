@@ -27,7 +27,7 @@ from hiring_agent.schemas.resume import (
 )
 from hiring_agent.providers.ollama import OllamaProvider
 from hiring_agent.utils.llm import extract_json_from_response
-from pymupdf_rag import to_markdown
+from hiring_agent.utils.pymupdf_rag import to_markdown
 from typing import List, Optional, Dict, Any
 from hiring_agent.config import DEFAULT_MODEL, MODEL_PARAMETERS
 from hiring_agent.prompts.template_manager import TemplateManager
