@@ -1,8 +1,6 @@
 """
-Backward-compatible entry point shim.
-
-All logic lives in hiring_agent/main.py.
-Prefer:  python -m hiring_agent <pdf_path>
+Package entry point.
+Enables:  python -m hiring_agent <pdf_path>
 """
 
 import sys
@@ -11,7 +9,7 @@ from hiring_agent.main import main
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python score.py <pdf_path>")
+        print("Usage: python -m hiring_agent <pdf_path>")
         sys.exit(1)
 
     pdf_path = sys.argv[1]
