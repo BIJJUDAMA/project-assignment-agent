@@ -54,24 +54,29 @@ Final Score = categories + bonus − deductions (hard capped at 120)
 
 ## 2. Project Compatibility Scoring (0–100 pts)
 
-To assign candidates to project specs, the agent runs a pair-level compatibility matching assessment.
+To assign candidates to project specs, the agent runs a pair-level compatibility matching assessment focused strictly on technical capabilities.
 
 ```
 Project Fit Score (100 pts max)
 ├── ⚙️ Technology Alignment  → Crucial technologies (languages/frameworks)
-├── 🌐 Domain Match          → Alignment with project domain (e.g. ML, DevOps)
-└── 📈 Complexity Fit        → Alignment of candidate experience with project scope
+└── 🌐 Domain Match          → Alignment with project domain (e.g. ML, DevOps)
 ```
 
 ### Scoring Rubric:
-* **85–100 (Exceptional Fit)**: Candidate possesses strong hands-on experience in all required technologies and domain-specific concepts, with demonstrable project or production evidence.
+* **85–100 (Exceptional Fit)**: Candidate possesses strong hands-on experience in all required technologies and domain-specific concepts, verified through their skills list, work history, or GitHub repositories.
 * **70–84 (Good Fit)**: Candidate matches the main technology stack and domain, with minor gaps that can be easily picked up.
 * **50–69 (Moderate Fit)**: Candidate has transferable skills (e.g. knows Java/C++ but project requires Go) but lacks direct experience in the domain or primary technologies.
 * **0–49 (Poor Fit)**: Major technology mismatch and domain misalignment (e.g., matching a pure frontend designer to a low-level C++ embedded systems project).
 
+## 3. Team Anchor Derivation (Post-Assignment)
+To respect skills compatibility as the primary assignment driver, team anchors/leads are never determined during matching. Instead, after assignments are resolved:
+1. Assigned candidates are grouped by their matched project.
+2. Within each team, candidates are ranked by their general resume quality score (0–120 points).
+3. The candidate with the highest general quality score is designated as the **Team Anchor/Lead** (`👑`).
+
 ---
 
-## 3. Pipeline Execution Flows
+## 4. Pipeline Execution Flows
 
 ### A. Resume Evaluation Flow
 ```
@@ -102,7 +107,7 @@ Projects Dir (PDFs) ──► PDFHandler ──► ProjectSpecs List ─┼─�
 
 ---
 
-## 4. Key Orchestration Files
+## 5. Key Orchestration Files
 
 | File | Role |
 | --- | --- |
