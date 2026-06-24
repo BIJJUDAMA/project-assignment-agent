@@ -9,7 +9,7 @@ from typing import List, Dict, Tuple, Any
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from hiring_agent.schemas.resume import JSONResume, ProjectRequirements, ProjectFit
+from schemas.resume import JSONResume, ProjectRequirements, ProjectFit
 
 logger = logging.getLogger(__name__)
 

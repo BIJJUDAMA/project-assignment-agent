@@ -3,7 +3,7 @@ Data transformation helpers for resume, GitHub, and evaluation data.
 """
 
 from typing import Dict, List, Optional
-from hiring_agent.schemas.resume import JSONResume
+from schemas.resume import JSONResume
 
 
 def transform_parsed_data(parsed_data: Dict) -> Dict:

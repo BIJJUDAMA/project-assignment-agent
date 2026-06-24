@@ -10,7 +10,7 @@ import time
 import logging
 import pymupdf
 
-from hiring_agent.schemas.resume import (
+from schemas.resume import (
     JSONResume,
     Basics,
     Work,
@@ -26,13 +26,13 @@ from hiring_agent.schemas.resume import (
     AwardsSection,
     ProjectRequirements,
 )
-from hiring_agent.providers.ollama import OllamaProvider
-from hiring_agent.utils.llm import extract_json_from_response
-from hiring_agent.utils.pymupdf_rag import to_markdown
+from providers.ollama import OllamaProvider
+from utils.llm import extract_json_from_response
+from utils.pymupdf_rag import to_markdown
 from typing import List, Optional, Dict, Any
-from hiring_agent.config import DEFAULT_MODEL, MODEL_PARAMETERS
-from hiring_agent.prompts.template_manager import TemplateManager
-from hiring_agent.utils.transform import transform_parsed_data
+from config import DEFAULT_MODEL, MODEL_PARAMETERS
+from prompts.template_manager import TemplateManager
+from utils.transform import transform_parsed_data
 
 logger = logging.getLogger(__name__)
 

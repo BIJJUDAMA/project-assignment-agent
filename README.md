@@ -58,34 +58,34 @@ For in-depth explanations of scoring rules and optimization algorithms:
 
 **Flow**
 
-1. `hiring_agent/utils/pymupdf_rag.py` converts resume and project PDF pages to Markdown.
-2. `hiring_agent/pipeline/pdf_handler.py` parses resumes and project specifications into structured JSON using local LLM calls and Jinja templates.
-3. `hiring_agent/pipeline/github.py` enriches resumes with GitHub profiles.
-4. `hiring_agent/pipeline/match_evaluator.py` evaluates candidate compatibility for each project.
-5. `hiring_agent/pipeline/assignment_engine.py` constructs a cost matrix and runs SciPy's Hungarian algorithm to assign candidates to project slots equally.
-6. `hiring_agent/main.py` orchestrates the assignment flow and outputs reports and CSVs.
+1. `utils/pymupdf_rag.py` converts resume and project PDF pages to Markdown.
+2. `pipeline/pdf_handler.py` parses resumes and project specifications into structured JSON using local LLM calls and Jinja templates.
+3. `pipeline/github.py` enriches resumes with GitHub profiles.
+4. `pipeline/match_evaluator.py` evaluates candidate compatibility for each project.
+5. `pipeline/assignment_engine.py` constructs a cost matrix and runs SciPy's Hungarian algorithm to assign candidates to project slots equally.
+6. `main.py` orchestrates the assignment flow and outputs reports and CSVs.
 
 </td>
 <td>
 
 **Key modules**
 
-- `hiring_agent/schemas/resume.py`
+- `schemas/resume.py`
   Pydantic schemas for resumes, projects, and matching evaluations.
 
-- `hiring_agent/pipeline/match_evaluator.py`
+- `pipeline/match_evaluator.py`
   Pair-level matching and caching system.
 
-- `hiring_agent/pipeline/assignment_engine.py`
+- `pipeline/assignment_engine.py`
   Balanced distribution solver using `scipy.optimize.linear_sum_assignment`.
 
-- `hiring_agent/providers/ollama.py`
+- `providers/ollama.py`
   Ollama provider wrapper.
 
-- `hiring_agent/prompts/`
+- `prompts/`
   Jinja templates for extraction, scoring, and matching.
 
-- `hiring_agent/config.py`
+- `config.py`
   Single source of truth for model configurations.
 
 </td>
@@ -206,42 +206,40 @@ python main.py /path/to/resumes/
 
 ```text
 .
-├── main.py                          ← entry point (supports assignment & legacy flags)
+├── main.py                          ← entry point (orchestration pipeline)
+├── config.py                        ← model selection and parameters
 ├── .env.example
 ├── .python-version
 ├── requirements.txt
-└── hiring_agent/
-    ├── config.py                    ← model selection and parameters
-    ├── main.py                      ← orchestration pipeline
-    ├── schemas/
-    │   └── resume.py                ← Pydantic schemas (added project specs)
-    ├── providers/
-    │   └── ollama.py                ← Ollama provider
-    ├── utils/
-    │   ├── llm.py                   ← response cleanup helpers
-    │   ├── transform.py             ← JSON Resume normalization
-    │   └── pymupdf_rag.py           ← PDF-to-Markdown vendor utility
-    ├── pipeline/
-    │   ├── pdf_handler.py           ← PDF extraction pipeline (added project extraction)
-    │   ├── evaluator.py             ← legacy scoring pipeline
-    │   ├── github.py                ← GitHub enrichment pipeline
-    │   ├── match_evaluator.py       ← project compatibility matching
-    │   └── assignment_engine.py     ← SciPy-based balanced assignment engine
-    └── prompts/
-        ├── template_manager.py      ← Jinja2 template loader (added project prompts)
-        └── templates/
-            ├── awards.jinja
-            ├── basics.jinja
-            ├── education.jinja
-            ├── github_project_selection.jinja
-            ├── projects.jinja
-            ├── resume_evaluation_criteria.jinja
-            ├── resume_evaluation_system_message.jinja
-            ├── skills.jinja
-            ├── system_message.jinja
-            ├── work.jinja
-            ├── project_parsing.jinja
-            └── project_matching.jinja
+├── schemas/
+│   └── resume.py                    ← Pydantic schemas (added project specs)
+├── providers/
+│   └── ollama.py                    ← Ollama provider
+├── utils/
+│   ├── llm.py                       ← response cleanup helpers
+│   ├── transform.py                 ← JSON Resume normalization
+│   └── pymupdf_rag.py               ← PDF-to-Markdown vendor utility
+├── pipeline/
+│   ├── pdf_handler.py               ← PDF extraction pipeline (added project extraction)
+│   ├── evaluator.py                 ← legacy scoring pipeline
+│   ├── github.py                    ← GitHub enrichment pipeline
+│   ├── match_evaluator.py           • project compatibility matching
+│   └── assignment_engine.py         ← SciPy-based balanced assignment engine
+└── prompts/
+    ├── template_manager.py          ← Jinja2 template loader (added project prompts)
+    └── templates/
+        ├── awards.jinja
+        ├── basics.jinja
+        ├── education.jinja
+        ├── github_project_selection.jinja
+        ├── projects.jinja
+        ├── resume_evaluation_criteria.jinja
+        ├── resume_evaluation_system_message.jinja
+        ├── skills.jinja
+        ├── system_message.jinja
+        ├── work.jinja
+        ├── project_parsing.jinja
+        └── project_matching.jinja
 ```
 
 ---

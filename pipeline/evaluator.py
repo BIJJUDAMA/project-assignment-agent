@@ -3,11 +3,11 @@ Resume evaluation pipeline: scores a structured resume using Ollama.
 """
 
 from typing import Dict, List, Optional, Tuple, Any
-from hiring_agent.schemas.resume import JSONResume, EvaluationData
-from hiring_agent.providers.ollama import OllamaProvider
-from hiring_agent.utils.llm import extract_json_from_response
-from hiring_agent.config import DEFAULT_MODEL, MODEL_PARAMETERS
-from hiring_agent.prompts.template_manager import TemplateManager
+from schemas.resume import JSONResume, EvaluationData
+from providers.ollama import OllamaProvider
+from utils.llm import extract_json_from_response
+from config import DEFAULT_MODEL, MODEL_PARAMETERS
+from prompts.template_manager import TemplateManager
 import logging
 import json
 import re
