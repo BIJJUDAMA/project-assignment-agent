@@ -4,11 +4,11 @@ Thanks for your interest in improving this project. Contributions are welcome, i
 
 ## Reporting Bugs
 
-1. Check that the bug has not already been reported: https://github.com/interviewstreet/hiring-agent/issues
-2. Open a new bug report: https://github.com/interviewstreet/hiring-agent/issues/new
+1. Check that the bug has not already been reported: https://github.com/BIJJUDAMA/project-assignment-agent/issues
+2. Open a new bug report: https://github.com/BIJJUDAMA/project-assignment-agent/issues/new
 3. Please include:
    - Clear description of the issue and expected behavior
-   - Environment info: OS, Python version, hiring-agent commit or version
+   - Environment info: OS, Python version, project-assignment-agent commit or version
    - Steps to reproduce
    - Relevant logs or stack traces
 
@@ -17,13 +17,13 @@ Thanks for your interest in improving this project. Contributions are welcome, i
 
 ## Feature Requests
 
-1. Check for existing requests: https://github.com/interviewstreet/hiring-agent/issues
-2. Open a new feature request: https://github.com/interviewstreet/hiring-agent/issues/new
+1. Check for existing requests: https://github.com/BIJJUDAMA/project-assignment-agent/issues
+2. Open a new feature request: https://github.com/BIJJUDAMA/project-assignment-agent/issues/new
 3. Describe the problem, the proposed solution, and any alternatives you considered.
 
 ## Contributing Code
 
-1. Pick an issue from https://github.com/interviewstreet/hiring-agent/issues or open one first.
+1. Pick an issue from https://github.com/BIJJUDAMA/project-assignment-agent/issues or open one first.
 2. Comment that you are working on it to avoid duplicate efforts.
 3. Fork the repo, then create a feature branch for your change.
 

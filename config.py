@@ -1,5 +1,5 @@
 """
-Central configuration for hiring_agent.
+Central configuration for project assignment agent.
 Loads environment variables and defines all model parameters.
 Single source of truth — replaces root config.py and prompt.py.
 """

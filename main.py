@@ -685,7 +685,7 @@ def main_assignment(resumes_path: str, projects_path: str):
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Hiring Agent CLI")
+    parser = argparse.ArgumentParser(description="Project Assignment Agent CLI")
     parser.add_argument("--resumes", help="Path to resumes PDF or folder containing resume PDFs")
     parser.add_argument("--projects", help="Path to projects PDF or folder containing project PDFs")
     parser.add_argument("legacy_path", nargs="?", help="Legacy path (single resume PDF or folder of resumes)")

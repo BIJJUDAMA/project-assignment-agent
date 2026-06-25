@@ -111,10 +111,10 @@ Projects Dir (PDFs) ──► PDFHandler ──► ProjectSpecs List ─┼─�
 
 | File | Role |
 | --- | --- |
-| [main.py](file:///C:/My-Files/Github/hiring-agent/main.py) | Entry point and orchestration pipeline (handles single, batch, and assignment runs). |
-| [schemas/resume.py](file:///C:/My-Files/Github/hiring-agent/schemas/resume.py) | Pydantic data schemas representing resume, project, and matching objects. |
-| [pipeline/pdf_handler.py](file:///C:/My-Files/Github/hiring-agent/pipeline/pdf_handler.py) | Converts PDFs to Markdown, structures sections. |
-| [pipeline/evaluator.py](file:///C:/My-Files/Github/hiring-agent/pipeline/evaluator.py) | Resume scoring LLM coordinator. |
-| [pipeline/match_evaluator.py](file:///C:/My-Files/Github/hiring-agent/pipeline/match_evaluator.py) | Pair compatibility evaluator with cache layer. |
-| [pipeline/assignment_engine.py](file:///C:/My-Files/Github/hiring-agent/pipeline/assignment_engine.py) | Balanced optimization engine using SciPy. |
-| [prompts/templates/](file:///C:/My-Files/Github/hiring-agent/prompts/templates/) | Jinja prompt templates for parsing and matching. |
+| [main.py](main.py) | Entry point and orchestration pipeline (handles single, batch, and assignment runs). |
+| [schemas/resume.py](schemas/resume.py) | Pydantic data schemas representing resume, project, and matching objects. |
+| [pipeline/pdf_handler.py](pipeline/pdf_handler.py) | Converts PDFs to Markdown, structures sections. |
+| [pipeline/evaluator.py](pipeline/evaluator.py) | Resume scoring LLM coordinator. |
+| [pipeline/match_evaluator.py](pipeline/match_evaluator.py) | Pair compatibility evaluator with cache layer. |
+| [pipeline/assignment_engine.py](pipeline/assignment_engine.py) | Balanced optimization engine using SciPy. |
+| [prompts/templates/](prompts/templates/) | Jinja prompt templates for parsing and matching. |

@@ -9,7 +9,7 @@ This document details the architecture, evaluation criteria, caching strategy, a
 For every candidate and project pair, the agent uses a local LLM via Ollama to evaluate compatibility.
 
 ### Inputs
-1. **Candidate Profile**: Parsed resume text ([JSONResume](file:///C:/My-Files/Github/hiring-agent/schemas/resume.py#L182)) enriched with public GitHub profile and repository metadata.
+1. **Candidate Profile**: Parsed resume text ([JSONResume](schemas/resume.py#L182)) enriched with public GitHub profile and repository metadata.
 2. **Project Specification**: Parsed project requirements (`ProjectRequirements` schema) containing title, description, required technologies, preferred skills, and core domain.
 
 ### Prompt Template

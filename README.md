@@ -6,7 +6,7 @@
   <a href="https://www.python.org/downloads/release/python-3110/">
     <img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-blue.svg">
   </a>
-  <a href="https://github.com/interviewstreet/hiring-agent/blob/master/LICENSE">
+  <a href="https://github.com/BIJJUDAMA/project-assignment-agent/blob/master/LICENSE">
     <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-yellow.svg">
   </a>
   <a href="https://github.com/psf/black">
@@ -45,8 +45,8 @@ Project Assignment Agent parses resume and project specification PDFs to Markdow
 ## Documentation Reference
 
 For in-depth explanations of scoring rules and optimization algorithms:
-* **[SCORING.md](file:///C:/My-Files/Github/hiring-agent/SCORING.md)** details the rubrics for both individual resume scoring and candidate-project compatibility scores.
-* **[MATCHER.md](file:///C:/My-Files/Github/hiring-agent/MATCHER.md)** explains the LLM pair-matching caching layer and the SciPy linear sum assignment formulation.
+* **[SCORING.md](SCORING.md)** details the rubrics for both individual resume scoring and candidate-project compatibility scores.
+* **[MATCHER.md](MATCHER.md)** explains the LLM pair-matching caching layer and the SciPy linear sum assignment formulation.
 
 ---
 
@@ -107,8 +107,8 @@ For in-depth explanations of scoring rules and optimization algorithms:
 ### Quick setup with pip
 
 ```bash
-$ git clone https://github.com/interviewstreet/hiring-agent
-$ cd hiring-agent
+$ git clone https://github.com/BIJJUDAMA/project-assignment-agent
+$ cd project-assignment-agent
 
 $ python -m venv .venv
 # Linux or macOS
@@ -252,4 +252,4 @@ Please read the [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 
 ## License
 
-[MIT](https://github.com/interviewstreet/hiring-agent/blob/master/LICENSE) © HackerRank
+[MIT](LICENSE) © HackerRank
